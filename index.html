@@ -1,41 +1,441 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>GizaEdu | تسجيل</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GizaEdu | منصة تعليمية</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #020420; /* كحلي غامق */
+            --gold: #D4AF37;   /* ذهبي */
+            --light: #f4f4f4;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+        }
+        body { font-family: 'Tajawal', sans-serif; background: var(--light); margin: 0; padding: 0; }
+        
+        .container { max-width: 1000px; margin: 20px auto; padding: 20px; }
+        .hidden { display: none !important; }
+        
+        /* الأزرار والحقول */
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-gold { background: var(--gold); color: var(--primary); }
+        .btn-gold:hover { transform: scale(1.05); }
+        .btn-danger { background: var(--danger); color: white; }
+        .form-control { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        
+        /* شاشات الدخول */
+        .auth-wrapper { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--primary); }
+        .auth-box { background: white; padding: 40px; border-radius: 10px; text-align: center; width: 90%; max-width: 450px; border-top: 5px solid var(--gold); }
+        
+        /* البطاقات */
+        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .exam-card { border-right: 5px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        
+        /* شاشة الامتحان */
+        .question-box { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd; }
+        .option-label { display: block; padding: 10px; background: #f9f9f9; margin: 5px 0; cursor: pointer; border-radius: 5px; }
+        .option-label:hover { background: #eee; }
+        input[type="radio"]:checked + span { color: var(--primary); font-weight: bold; }
+
+        /* الأنيميشن */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* شريط الأدمن */
+        .admin-nav { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 20px; }
+        .admin-nav button { white-space: nowrap; }
+    </style>
 </head>
 <body>
 
-<h2>GizaEdu – تسجيل حساب</h2>
+    <div id="authScreen" class="auth-wrapper">
+        <div class="auth-box fade-in">
+            <h1 style="color:var(--primary)">Giza<span style="color:var(--gold)">Edu</span></h1>
+            <div id="loginForm">
+                <input type="email" id="l_email" class="form-control" placeholder="البريد الإلكتروني">
+                <input type="password" id="l_pass" class="form-control" placeholder="كلمة المرور">
+                <button onclick="login()" class="btn btn-gold" style="width:100%">دخول</button>
+                <p style="margin-top:10px; cursor:pointer; color:gray" onclick="toggleAuth('register')">ليس لديك حساب؟ سجل الآن</p>
+            </div>
 
-<input id="email" placeholder="الإيميل"><br><br>
-<input id="password" type="password" placeholder="كلمة المرور"><br><br>
+            <div id="registerForm" class="hidden">
+                <input type="text" id="r_name" class="form-control" placeholder="الاسم الكامل">
+                <div style="display:flex; gap:5px">
+                    <input type="text" id="r_uni" class="form-control" placeholder="الجامعة">
+                    <select id="r_year" class="form-control">
+                        <option value="1">سنة 1</option>
+                        <option value="2">سنة 2</option>
+                        <option value="3">سنة 3</option>
+                        <option value="4">سنة 4</option>
+                        <option value="5">سنة 5</option>
+                    </select>
+                </div>
+                <input type="text" id="r_uni_id" class="form-control" placeholder="ID الجامعة (الكارنيه)">
+                <input type="email" id="r_email" class="form-control" placeholder="البريد الإلكتروني">
+                <input type="password" id="r_pass" class="form-control" placeholder="كلمة المرور">
+                <button onclick="register()" class="btn btn-gold" style="width:100%">إنشاء حساب طالب</button>
+                <p style="margin-top:10px; cursor:pointer; color:gray" onclick="toggleAuth('login')">لديك حساب؟ سجل دخول</p>
+            </div>
+        </div>
+    </div>
 
-<button onclick="register()">تسجيل</button>
+    <div id="studentScreen" class="container hidden fade-in">
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center">
+            <div>
+                <h2 id="stuNameDisplay">أهلاً بك</h2>
+                <small id="stuIdDisplay" style="color:gray"></small>
+            </div>
+            <button onclick="logout()" class="btn btn-danger">خروج</button>
+        </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const supabaseUrl = "https://vfrgyfoazieleaabtptd.supabase.co";
-  const supabaseKey = "sb_publishable_7lUqRpgua7aXCoeZLcs0qQ_RM3p0GZ8";
+        <div id="announcementBox" class="card hidden" style="background: linear-gradient(45deg, var(--primary), #000); color: var(--gold);">
+            <h3 style="margin:0"><i class="fas fa-bullhorn"></i> تنبيه هام</h3>
+            <p id="announcementText" style="margin:10px 0 0 0"></p>
+        </div>
 
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        <h3>الامتحانات المتاحة</h3>
+        <div id="examsList"></div>
+    </div>
 
-  async function register() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+    <div id="examScreen" class="container hidden fade-in">
+        <div class="card" style="position:sticky; top:10px; z-index:100; display:flex; justify-content:space-between;">
+            <h3 id="activeExamTitle">عنوان الامتحان</h3>
+            <div id="timer" style="color:var(--danger); font-weight:bold; font-size:1.2em">00:00</div>
+        </div>
+        <div id="questionsContainer"></div>
+        <button onclick="submitExam()" class="btn btn-gold" style="width:100%; margin-top:20px">تسليم الإجابة</button>
+    </div>
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password
-    });
+    <div id="adminScreen" class="container hidden fade-in">
+        <div class="card" style="background:var(--primary); color:white; display:flex; justify-content:space-between;">
+            <h2>Spider Admin Panel</h2>
+            <button onclick="logout()" class="btn btn-danger">خروج</button>
+        </div>
 
-    if (error) {
-      alert(error.message);
-    } else {
-      alert("تم التسجيل بنجاح ✅");
-    }
-  }
-</script>
+        <div class="admin-nav">
+            <button onclick="showAdminTab('addExam')" class="btn btn-gold">إضافة امتحان</button>
+            <button onclick="showAdminTab('students')" class="btn" style="background:white">الطلاب</button>
+            <button onclick="showAdminTab('settings')" class="btn" style="background:white">إعدادات</button>
+        </div>
 
-</body>
-</html>
+        <div id="tab-addExam">
+            <div class="card">
+                <h3>إنشاء امتحان جديد</h3>
+                <input type="text" id="newExamTitle" class="form-control" placeholder="اسم الامتحان">
+                <input type="text" id="newExamFolder" class="form-control" placeholder="المجلد (مثال: عضوية)">
+                
+                <div id="qBuilder"></div>
+                
+                <div style="display:flex; gap:10px; margin-top:10px">
+                    <button onclick="addQField()" class="btn" style="background:#eee">+ سؤال جديد</button>
+                    <button onclick="saveExamToSupabase()" class="btn btn-gold" style="flex:1">نشر الامتحان</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-students" class="hidden">
+            <div class="card">
+                <h3>قائمة الطلاب</h3>
+                <div id="studentsList"></div>
+            </div>
+        </div>
+        
+        <div id="tab-settings" class="hidden">
+            <div class="card">
+                <h3>إعدادات المنصة</h3>
+                <p>نشر إعلان عام للطلاب:</p>
+                <textarea id="adText" class="form-control" rows="3"></textarea>
+                <button onclick="postAd()" class="btn btn-gold">نشر الإعلان</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  إعدادات Supabase - تم التحديث ببياناتك
+        // ============================================================
+        const SUPABASE_URL = 'https://vfrgyfoazieleaabtptd.supabase.co'; 
+        const SUPABASE_KEY = 'sb_publishable_7lUqRpgua7aXCoeZLcs0qQ_RM3p0GZ8'; 
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // ============================================================
+
+        let currentUser = null;
+        let currentExam = null;
+        let examTimer = null;
+
+        // --- 1. المصادقة (Auth) ---
+        
+        async function register() {
+            const email = document.getElementById('r_email').value;
+            const password = document.getElementById('r_pass').value;
+            const name = document.getElementById('r_name').value;
+            const uni = document.getElementById('r_uni').value;
+            const uniId = document.getElementById('r_uni_id').value;
+            const year = document.getElementById('r_year').value;
+            
+            if(!email || !password || !name) return alert("يرجى ملء كافة البيانات الأساسية");
+
+            const platformId = 'GIZA-' + Math.floor(Math.random() * 10000);
+
+            // 1. تسجيل المستخدم في نظام المصادقة
+            const { data, error } = await supabase.auth.signUp({ email, password });
+            
+            if (error) return alert(error.message);
+
+            // 2. حفظ البيانات الإضافية في جدول profiles
+            if(data.user) {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert([{
+                        id: data.user.id,
+                        email: email,
+                        full_name: name,
+                        university: uni,
+                        uni_id: uniId,
+                        study_year: year,
+                        platform_id: platformId,
+                        role: 'student'
+                    }]);
+
+                if (profileError) {
+                    console.error(profileError);
+                    alert("تم التسجيل ولكن حدث خطأ في حفظ الملف الشخصي. يرجى مراجعة الجدول في Supabase.");
+                } else {
+                    alert("تم إنشاء الحساب بنجاح! معرفك هو: " + platformId);
+                    toggleAuth('login');
+                }
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('l_email').value;
+            const password = document.getElementById('l_pass').value;
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            
+            if (error) return alert("خطأ في الدخول: " + error.message);
+            
+            if(data.user) checkUser(data.user.id);
+        }
+
+        async function checkUser(userId) {
+            // جلب بيانات المستخدم من جدول profiles
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (data) {
+                currentUser = data;
+                document.getElementById('authScreen').classList.add('hidden');
+                
+                if (data.role === 'admin') {
+                    showAdminPanel();
+                } else {
+                    showStudentPanel();
+                }
+            } else {
+                alert("لم يتم العثور على ملف تعريف المستخدم. تأكد من إنشاء الجداول في Supabase.");
+            }
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            location.reload();
+        }
+
+        // --- 2. لوحة الطالب ---
+
+        async function showStudentPanel() {
+            document.getElementById('studentScreen').classList.remove('hidden');
+            document.getElementById('stuNameDisplay').innerText = `أهلاً، ${currentUser.full_name}`;
+            document.getElementById('stuIdDisplay').innerText = `ID: ${currentUser.platform_id} | سنة: ${currentUser.study_year}`;
+
+            // جلب الإعلانات
+            const { data: ads } = await supabase.from('settings').select('*').eq('key_name', 'announcement').single();
+            if(ads && ads.value_text) {
+                document.getElementById('announcementBox').classList.remove('hidden');
+                document.getElementById('announcementText').innerText = ads.value_text;
+            }
+
+            // جلب الامتحانات
+            const { data: exams } = await supabase.from('exams').select('*').order('created_at', { ascending: false });
+            
+            const list = document.getElementById('examsList');
+            list.innerHTML = '';
+            
+            if(exams) {
+                exams.forEach(exam => {
+                    const div = document.createElement('div');
+                    div.className = 'card exam-card';
+                    div.innerHTML = `
+                        <div>
+                            <h3>${exam.title}</h3>
+                            <span style="background:#eee; padding:5px; border-radius:5px; font-size:0.8em">${exam.folder_name}</span>
+                        </div>
+                        <button onclick='loadExam(${JSON.stringify(exam)})' class="btn btn-gold">بدء</button>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+        }
+
+        // --- 3. نظام الامتحان ---
+
+        function loadExam(exam) {
+            currentExam = exam;
+            document.getElementById('studentScreen').classList.add('hidden');
+            document.getElementById('examScreen').classList.remove('hidden');
+            document.getElementById('activeExamTitle').innerText = exam.title;
+            
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+            
+            // تحويل JSON الأسئلة وعرضها
+            if(exam.questions && Array.isArray(exam.questions)) {
+                exam.questions.forEach((q, idx) => {
+                    let optionsHtml = '';
+                    let opts = [...q.options].sort(() => Math.random() - 0.5);
+                    
+                    opts.forEach(opt => {
+                        optionsHtml += `
+                            <label class="option-label">
+                                <input type="radio" name="q_${idx}" value="${opt}">
+                                <span>${opt}</span>
+                            </label>
+                        `;
+                    });
+
+                    container.innerHTML += `
+                        <div class="question-box">
+                            <p style="font-weight:bold">${idx+1}. ${q.text}</p>
+                            ${optionsHtml}
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function submitExam() {
+            let score = 0;
+            let total = currentExam.questions.length;
+            
+            currentExam.questions.forEach((q, idx) => {
+                const selected = document.querySelector(`input[name="q_${idx}"]:checked`);
+                if (selected && selected.value === q.correct) {
+                    score++;
+                }
+            });
+
+            const percent = Math.round((score / total) * 100);
+            
+            // حفظ النتيجة في Supabase
+            await supabase.from('results').insert([{
+                student_id: currentUser.platform_id,
+                student_name: currentUser.full_name,
+                exam_title: currentExam.title,
+                score: score,
+                total_score: total,
+                percentage: percent
+            }]);
+
+            alert(`انتهى الامتحان!\nنتيجتك: ${score} من ${total} (${percent}%)`);
+            location.reload();
+        }
+
+        // --- 4. لوحة الأدمن ---
+
+        function showAdminPanel() {
+            document.getElementById('adminScreen').classList.remove('hidden');
+        }
+
+        function showAdminTab(tab) {
+            document.getElementById('tab-addExam').classList.add('hidden');
+            document.getElementById('tab-students').classList.add('hidden');
+            document.getElementById('tab-settings').classList.add('hidden');
+            
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            if(tab === 'students') loadStudentsList();
+        }
+
+        // بناء الأسئلة للأدمن
+        let qCounter = 0;
+        function addQField() {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.style.background = '#f9f9f9';
+            div.innerHTML = `
+                <input type="text" class="form-control q-txt" placeholder="نص السؤال">
+                <input type="text" class="form-control q-correct" placeholder="الإجابة الصحيحة">
+                <input type="text" class="form-control q-wrong1" placeholder="إجابة خاطئة 1">
+                <input type="text" class="form-control q-wrong2" placeholder="إجابة خاطئة 2">
+            `;
+            document.getElementById('qBuilder').appendChild(div);
+        }
+
+        async function saveExamToSupabase() {
+            const title = document.getElementById('newExamTitle').value;
+            const folder = document.getElementById('newExamFolder').value;
+            
+            const qElements = document.querySelectorAll('#qBuilder .card');
+            let questionsArr = [];
+            
+            qElements.forEach(el => {
+                const txt = el.querySelector('.q-txt').value;
+                const corr = el.querySelector('.q-correct').value;
+                const w1 = el.querySelector('.q-wrong1').value;
+                const w2 = el.querySelector('.q-wrong2').value;
+                
+                if(txt && corr) {
+                    questionsArr.push({
+                        text: txt,
+                        correct: corr,
+                        options: [corr, w1, w2].filter(x => x)
+                    });
+                }
+            });
+
+            const { error } = await supabase.from('exams').insert([{
+                title: title,
+                folder_name: folder,
+                questions: questionsArr
+            }]);
+
+            if(error) alert(error.message);
+            else {
+                alert('تم نشر الامتحان بنجاح');
+                document.getElementById('qBuilder').innerHTML = '';
+            }
+        }
+
+        async function loadStudentsList() {
+            const { data: users } = await supabase.from('profiles').select('*').eq('role', 'student');
+            const container = document.getElementById('studentsList');
+            container.innerHTML = '';
+            
+            const { data: results } = await supabase.from('results').select('*');
+
+            if(users) {
+                users.forEach(u => {
+                    const studentResults = results ? results.filter(r => r.student_id === u.platform_id) : [];
+                    let resultHtml = studentResults.map(r => `<li>${r.exam_title}: ${r.percentage}%</li>`).join('');
+
+                    const div = document.createElement('div');
+                    div.className = 'card';
+                    div.innerHTML = `
+                        <div style="display:flex; justify-content:space-between">
+                            <h4>${u.full_name} <small>(${u.platform_id})</small></h4>
+                            <span>سنة ${u.study_year}</span>
+                        </div>
+                        <p>الجامعة: ${u.university} | ID: ${u.uni_id}</p>
+                        <hr>
+                        <small>النتائج السابقة:</small>
+                        <ul>${resultHtml || 'لا يوجد امتحانات بعد'}</ul>
+                    `
