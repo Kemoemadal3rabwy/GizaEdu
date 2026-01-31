@@ -1,0 +1,7 @@
+{
+  "name": "GizaEdu Advanced Examination System",
+  "description": "A professional electronic examination platform with an advanced admin panel (Spider Admin) and a feature-rich student dashboard, supporting multiple question types, automated grading, and comprehensive analytics.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
